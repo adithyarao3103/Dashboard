@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ScatterChart, Scatter } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { FileText, Plus, GripHorizontal, X, Type, BarChart, Eye, Edit, Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { FileText, Plus, GripHorizontal, X, Type, BarChart, Eye, Edit } from 'lucide-react';
 
 const DashboardBuilder = () => {
 const [data, setData] = useState([]);
@@ -10,249 +10,197 @@ const [columns, setColumns] = useState([]);
 const [blocks, setBlocks] = useState([]);
 const [draggedBlock, setDraggedBlock] = useState(null);
 const [editingText, setEditingText] = useState(null);
-const [dashboardTitle, setDashboardTitle] = useState('My Dashboard');
 
-// Export dashboard as HTML
-const exportDashboard = () => {
-// Create a minimal version of recharts for standalone use
-const rechartsCode = `
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.9.0/Recharts.js"></script>
-`;
+// Handle CSV file upload
+const handleFileUpload = (event) => {
+const file = event.target.files[0];
+const reader = new FileReader();
 
-// Generate the dashboard HTML
-const dashboardHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <title>${dashboardTitle}</title>
-    ${rechartsCode}
-    <style>
-        /* Reset and base styles */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        background: #f5f5f5;
-        padding: 2rem;
-        }
+reader.onload = (e) => {
+    const text = e.target.result;
+    const lines = text.split('\n');
+    const headers = lines[0].split(',').map(header => header.trim());
+    
+    const parsedData = lines.slice(1)
+    .filter(line => line.trim())
+    .map(line => {
+        const values = line.split(',');
+        const row = {};
+        headers.forEach((header, index) => {
+        row[header] = Number(values[index]) || values[index];
+        });
+        return row;
+    });
 
-        /* Dashboard container */
-        .dashboard {
-        max-width: 1200px;
-        margin: 0 auto;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        }
-
-        /* Header */
-        .dashboard-header {
-        padding: 2rem;
-        background: #fff;
-        border-bottom: 1px solid #eaeaea;
-        }
-
-        .dashboard-title {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        }
-
-        /* Content */
-        .dashboard-content {
-        padding: 2rem;
-        }
-
-        /* Blocks */
-        .block {
-        background: white;
-        border: 1px solid #eaeaea;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Text content */
-        .text-content {
-        font-size: 1rem;
-        color: #4a4a4a;
-        }
-
-        .text-content h1 { font-size: 2em; margin-bottom: 0.5em; }
-        .text-content h2 { font-size: 1.5em; margin-bottom: 0.5em; }
-        .text-content h3 { font-size: 1.25em; margin-bottom: 0.5em; }
-        .text-content p { margin-bottom: 1em; }
-        .text-content ul { margin-left: 1.5em; margin-bottom: 1em; }
-        .text-content a { color: #0070f3; text-decoration: none; }
-        .text-content a:hover { text-decoration: underline; }
-
-        /* Chart container */
-        .chart-container {
-        display: flex;
-        justify-content: center;
-        padding: 1rem;
-        background: #fafafa;
-        border-radius: 8px;
-        }
-    </style>
-    </head>
-    <body>
-    <div class="dashboard">
-        <div class="dashboard-header">
-        <h1 class="dashboard-title">${dashboardTitle}</h1>
-        </div>
-        <div class="dashboard-content">
-        ${blocks.map(block => {
-            if (block.type === 'text') {
-            return `
-                <div class="block">
-                <div class="text-content">
-                    ${renderMarkdownToHtml(block.content)}
-                </div>
-                </div>
-            `;
-            } else {
-            return `
-                <div class="block">
-                <div class="chart-container">
-                    <div id="chart-${block.id}"></div>
-                </div>
-                </div>
-            `;
-            }
-        }).join('')}
-        </div>
-    </div>
-    <script>
-        const data = ${JSON.stringify(data)};
-        
-        ${blocks
-        .filter(block => block.type === 'chart')
-        .map(block => `
-            const chart${block.id} = ${generateChartCode(block)};
-            ReactDOM.render(chart${block.id}, document.getElementById('chart-${block.id}'));
-        `).join('\n')}
-    </script>
-    </body>
-    </html>
-`;
-
-// Create and trigger download
-const blob = new Blob([dashboardHtml], { type: 'text/html' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = `${dashboardTitle.toLowerCase().replace(/\s+/g, '-')}.html`;
-document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-URL.revokeObjectURL(url);
+    setData(parsedData);
+    setColumns(headers);
 };
 
-// Helper function to generate chart code for export
-const generateChartCode = (block) => {
-const chartComponent = block.content.chartType === 'line' ? 'LineChart' : 'ScatterChart';
-return `
-    React.createElement(Recharts.${chartComponent}, {
+reader.readAsText(file);
+};
+
+const addBlock = (type) => {
+const newBlock = {
+    id: Date.now(),
+    type,
+    content: type === 'text' ? '# New Text Block\n\nStart typing your content here...\n\n- Use **markdown** formatting\n- Create _italic_ text\n-' : {
+    chartType: 'line',
+    xAxis: columns[0] || '',
+    yAxis: columns[1] || '',
+    },
+    isEditing: type === 'text'
+};
+setBlocks([...blocks, newBlock]);
+};
+
+const handleDragStart = (blockId) => {
+setDraggedBlock(blockId);
+};
+
+const handleDragOver = (e, blockId) => {
+e.preventDefault();
+if (!draggedBlock || draggedBlock === blockId) return;
+
+const blocksCopy = [...blocks];
+const draggedIdx = blocksCopy.findIndex(b => b.id === draggedBlock);
+const targetIdx = blocksCopy.findIndex(b => b.id === blockId);
+
+const [draggedItem] = blocksCopy.splice(draggedIdx, 1);
+blocksCopy.splice(targetIdx, 0, draggedItem);
+
+setBlocks(blocksCopy);
+};
+
+const renderChart = (block) => {
+if (!data.length) return null;
+
+const chartProps = {
     width: 600,
     height: 400,
     data: data,
     margin: { top: 20, right: 30, left: 20, bottom: 30 }
-    },
-    React.createElement(Recharts.CartesianGrid, { strokeDasharray: "3 3" }),
-    React.createElement(Recharts.XAxis, { dataKey: "${block.content.xAxis}" }),
-    React.createElement(Recharts.YAxis, { dataKey: "${block.content.yAxis}" }),
-    React.createElement(Recharts.Tooltip),
-    ${block.content.chartType === 'line' 
-        ? `React.createElement(Recharts.Line, { type: "monotone", dataKey: "${block.content.yAxis}", stroke: "#8884d8" })`
-        : `React.createElement(Recharts.Scatter, { data: data, fill: "#8884d8" })`
-    }
-    )
-`;
 };
 
-// Helper function to convert markdown to HTML for export
-const renderMarkdownToHtml = (markdown) => {
-let html = markdown
-    // Headers
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/_(.*?)_/g, '<em>$1</em>')
-    // Lists
-    .replace(/^- (.*$)/gm, '<li>$1</li>')
-    // Links
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
-    // Paragraphs
-    .replace(/^(?!<[hl]|<li)(.*$)/gm, '<p>$1</p>');
+if (block.content.chartType === 'line') {
+    return (
+    <LineChart {...chartProps}>
+        <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+        <XAxis dataKey={block.content.xAxis} />
+        <YAxis dataKey={block.content.yAxis} />
+        <Tooltip contentStyle={{ background: 'white', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+        <Line type="monotone" dataKey={block.content.yAxis} stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1' }} />
+    </LineChart>
+    );
+} else {
+    return (
+    <ScatterChart {...chartProps}>
+        <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+        <XAxis dataKey={block.content.xAxis} />
+        <YAxis dataKey={block.content.yAxis} />
+        <Tooltip contentStyle={{ background: 'white', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+        <Scatter data={data} fill="#6366f1" />
+    </ScatterChart>
+    );
+}
+};
 
-// Wrap lists in ul tags
-if (html.includes('<li>')) {
-    html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+const toggleEditMode = (blockId) => {
+setBlocks(blocks.map(block => 
+    block.id === blockId 
+    ? { ...block, isEditing: !block.isEditing }
+    : block
+));
+};
+
+const updateBlockContent = (blockId, newContent) => {
+setBlocks(blocks.map(block => 
+    block.id === blockId ? { ...block, content: newContent } : block
+));
+};
+
+const MarkdownBlock = ({ content, isEditing, onEdit, onChange }) => {
+if (isEditing) {
+    return (
+    <div className="relative">
+        <textarea
+        className="w-full min-h-64 p-4 border rounded-lg font-mono text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+        value={content}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Type your markdown here..."
+        />
+        <div className="absolute top-3 right-3">
+        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">Markdown Enabled</div>
+        </div>
+    </div>
+    );
 }
 
-return html;
+const lines = content.split('\n');
+const processedLines = lines.map((line, index) => {
+    if (line.startsWith('# ')) {
+    return <h1 key={index} className="text-3xl font-bold mb-6 text-gray-900">{line.slice(2)}</h1>;
+    }
+    if (line.startsWith('## ')) {
+    return <h2 key={index} className="text-2xl font-bold mb-4 text-gray-800">{line.slice(3)}</h2>;
+    }
+    if (line.startsWith('### ')) {
+    return <h3 key={index} className="text-xl font-bold mb-3 text-gray-700">{line.slice(4)}</h3>;
+    }
+
+    if (line.startsWith('- ')) {
+    return <li key={index} className="ml-6 mb-2 text-gray-700">{processInlineMarkdown(line.slice(2))}</li>;
+    }
+
+    return line ? (
+    <p key={index} className="mb-4 text-gray-700 leading-relaxed">{processInlineMarkdown(line)}</p>
+    ) : (
+    <br key={index} />
+    );
+});
+
+return <div className="prose max-w-none p-4">{processedLines}</div>;
 };
 
-// ... (rest of the component code remains the same, but add the following to the JSX)
+const processInlineMarkdown = (text) => {
+text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+text = text.replace(/_(.*?)_/g, '<em class="italic">$1</em>');
+text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 transition-colors" target="_blank">$1</a>');
+
+return <span dangerouslySetInnerHTML={{ __html: text }} />;
+};
 
 return (
-<div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6">
-    <Card className="max-w-6xl mx-auto border-none shadow-lg">
-    <CardHeader className="flex flex-row items-center justify-between bg-white rounded-t-lg border-b border-gray-100">
-        <div className="flex flex-col gap-2">
-        <CardTitle className="text-2xl font-bold text-gray-800">
-            <input
-            type="text"
-            value={dashboardTitle}
-            onChange={(e) => setDashboardTitle(e.target.value)}
-            className="bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
-            />
+<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <Card className="max-w-6xl mx-auto shadow-lg">
+    <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 bg-white rounded-t-lg">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
+        Dashboard Builder
         </CardTitle>
-        <p className="text-sm text-gray-500">
-            Build your dashboard by adding blocks and uploading data
-        </p>
-        </div>
-        <div className="flex gap-4">
+        <div className="flex gap-3">
         <Button 
-            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors"
             onClick={() => document.getElementById('file-upload').click()}
         >
             <FileText size={16} />
             Upload CSV
         </Button>
         <Button 
-            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
             onClick={() => addBlock('text')}
         >
             <Type size={16} />
             Add Text
         </Button>
         <Button 
-            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             onClick={() => addBlock('chart')}
         >
             <BarChart size={16} />
             Add Chart
         </Button>
-        <Button 
-            className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
-            onClick={exportDashboard}
-        >
-            <Download size={16} />
-            Export
-        </Button>
         </div>
     </CardHeader>
-    <CardContent className="space-y-6 p-6">
+    <CardContent className="p-6">
         <input
         id="file-upload"
         type="file"
@@ -268,15 +216,15 @@ return (
             draggable
             onDragStart={() => handleDragStart(block.id)}
             onDragOver={(e) => handleDragOver(e, block.id)}
-            className="relative bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-500 transition-colors duration-200 ease-in-out"
+            className="relative bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:border-indigo-500 hover:shadow-md transition-all duration-200"
             >
-            <div className="absolute top-2 right-2 flex gap-2">
+            <div className="absolute top-3 right-3 flex gap-2">
                 {block.type === 'text' && (
                 <Button
                     variant="ghost"
                     size="sm"
+                    className="text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
                     onClick={() => toggleEditMode(block.id)}
-                    className="text-gray-500 hover:text-gray-700"
                 >
                     {block.isEditing ? <Eye size={16} /> : <Edit size={16} />}
                 </Button>
@@ -284,15 +232,15 @@ return (
                 <Button
                 variant="ghost"
                 size="sm"
-                className="cursor-move text-gray-500 hover:text-gray-700"
+                className="cursor-move text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
                 >
                 <GripHorizontal size={16} />
                 </Button>
                 <Button
                 variant="ghost"
                 size="sm"
+                className="text-gray-500 hover:text-red-600 hover:bg-red-50"
                 onClick={() => setBlocks(blocks.filter(b => b.id !== block.id))}
-                className="text-gray-500 hover:text-red-600"
                 >
                 <X size={16} />
                 </Button>
@@ -306,10 +254,10 @@ return (
                 onChange={(newContent) => updateBlockContent(block.id, newContent)}
                 />
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                 <div className="grid grid-cols-3 gap-4">
                     <select
-                    className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="p-2 border rounded-lg bg-white hover:border-indigo-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                     value={block.content.chartType}
                     onChange={(e) => updateBlockContent(block.id, {
                         ...block.content,
@@ -320,7 +268,7 @@ return (
                     <option value="scatter">Scatter Plot</option>
                     </select>
                     <select
-                    className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="p-2 border rounded-lg bg-white hover:border-indigo-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                     value={block.content.xAxis}
                     onChange={(e) => updateBlockContent(block.id, {
                         ...block.content,
@@ -332,7 +280,7 @@ return (
                     ))}
                     </select>
                     <select
-                    className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="p-2 border rounded-lg bg-white hover:border-indigo-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                     value={block.content.yAxis}
                     onChange={(e) => updateBlockContent(block.id, {
                         ...block.content,
@@ -344,7 +292,7 @@ return (
                     ))}
                     </select>
                 </div>
-                <div className="flex justify-center bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-center bg-gray-50 p-6 rounded-lg">
                     {renderChart(block)}
                 </div>
                 </div>
