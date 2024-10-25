@@ -4,14 +4,66 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { FileText, Plus, GripHorizontal, X, Type, BarChart, Eye, Edit } from 'lucide-react';
 
+const MarkdownBlock = React.memo(({ content, isEditing, onEdit, onChange }) => {
+const textareaRef = useRef(null);
+
+if (isEditing) {
+return (
+    <div className="relative">
+    <textarea
+        ref={textareaRef}
+        className="w-full min-h-64 p-4 border rounded-lg font-mono text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+        value={content}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Type your markdown here..."
+    />
+    <div className="absolute top-3 right-3">
+        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">Markdown Enabled</div>
+    </div>
+    </div>
+);
+}
+
+const processInlineMarkdown = (text) => {
+text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+text = text.replace(/_(.*?)_/g, '<em class="italic">$1</em>');
+text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 transition-colors" target="_blank">$1</a>');
+
+return <span dangerouslySetInnerHTML={{ __html: text }} />;
+};
+
+const lines = content.split('\n');
+const processedLines = lines.map((line, index) => {
+if (line.startsWith('# ')) {
+    return <h1 key={index} className="text-3xl font-bold mb-6 text-gray-900">{line.slice(2)}</h1>;
+}
+if (line.startsWith('## ')) {
+    return <h2 key={index} className="text-2xl font-bold mb-4 text-gray-800">{line.slice(3)}</h2>;
+}
+if (line.startsWith('### ')) {
+    return <h3 key={index} className="text-xl font-bold mb-3 text-gray-700">{line.slice(4)}</h3>;
+}
+
+if (line.startsWith('- ')) {
+    return <li key={index} className="ml-6 mb-2 text-gray-700">{processInlineMarkdown(line.slice(2))}</li>;
+}
+
+return line ? (
+    <p key={index} className="mb-4 text-gray-700 leading-relaxed">{processInlineMarkdown(line)}</p>
+) : (
+    <br key={index} />
+);
+});
+
+return <div className="prose max-w-none p-4">{processedLines}</div>;
+});
+
 const DashboardBuilder = () => {
 const [data, setData] = useState([]);
 const [columns, setColumns] = useState([]);
 const [blocks, setBlocks] = useState([]);
 const [draggedBlock, setDraggedBlock] = useState(null);
-const [editingText, setEditingText] = useState(null);
 
-// Handle CSV file upload
 const handleFileUpload = (event) => {
 const file = event.target.files[0];
 const reader = new FileReader();
@@ -113,60 +165,11 @@ setBlocks(blocks.map(block =>
 };
 
 const updateBlockContent = (blockId, newContent) => {
-setBlocks(blocks.map(block => 
+setBlocks(prevBlocks => 
+    prevBlocks.map(block => 
     block.id === blockId ? { ...block, content: newContent } : block
-));
-};
-
-const MarkdownBlock = ({ content, isEditing, onEdit, onChange }) => {
-if (isEditing) {
-    return (
-    <div className="relative">
-        <textarea
-        className="w-full min-h-64 p-4 border rounded-lg font-mono text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-        value={content}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Type your markdown here..."
-        />
-        <div className="absolute top-3 right-3">
-        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">Markdown Enabled</div>
-        </div>
-    </div>
-    );
-}
-
-const lines = content.split('\n');
-const processedLines = lines.map((line, index) => {
-    if (line.startsWith('# ')) {
-    return <h1 key={index} className="text-3xl font-bold mb-6 text-gray-900">{line.slice(2)}</h1>;
-    }
-    if (line.startsWith('## ')) {
-    return <h2 key={index} className="text-2xl font-bold mb-4 text-gray-800">{line.slice(3)}</h2>;
-    }
-    if (line.startsWith('### ')) {
-    return <h3 key={index} className="text-xl font-bold mb-3 text-gray-700">{line.slice(4)}</h3>;
-    }
-
-    if (line.startsWith('- ')) {
-    return <li key={index} className="ml-6 mb-2 text-gray-700">{processInlineMarkdown(line.slice(2))}</li>;
-    }
-
-    return line ? (
-    <p key={index} className="mb-4 text-gray-700 leading-relaxed">{processInlineMarkdown(line)}</p>
-    ) : (
-    <br key={index} />
-    );
-});
-
-return <div className="prose max-w-none p-4">{processedLines}</div>;
-};
-
-const processInlineMarkdown = (text) => {
-text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
-text = text.replace(/_(.*?)_/g, '<em class="italic">$1</em>');
-text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 transition-colors" target="_blank">$1</a>');
-
-return <span dangerouslySetInnerHTML={{ __html: text }} />;
+    )
+);
 };
 
 return (
@@ -248,6 +251,7 @@ return (
 
             {block.type === 'text' ? (
                 <MarkdownBlock
+                key={block.id}
                 content={block.content}
                 isEditing={block.isEditing}
                 onEdit={() => toggleEditMode(block.id)}
