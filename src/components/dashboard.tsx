@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { parse } from 'papaparse';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
