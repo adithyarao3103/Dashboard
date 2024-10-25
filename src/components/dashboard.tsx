@@ -1,3 +1,5 @@
+"use client"; 
+
 import React, { useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ScatterChart, Scatter } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
