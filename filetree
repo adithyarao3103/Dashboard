@@ -5,8 +5,9 @@ project-root/
 ├── postcss.config.js
 ├── components/
 │   └── ui/
-│       ├── button.jsx
-│       └── card.jsx
+│   │   ├── button.jsx
+│   │   └── card.jsx
+│   └── DashboardBuilder.jsx
 ├── pages/
 │   ├── _app.js
 │   └── index.js
