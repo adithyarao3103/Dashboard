@@ -44,7 +44,7 @@ const addBlock = (type) => {
 const newBlock = {
     id: Date.now(),
     type,
-    content: type === 'text' ? # New Text Block\n\nStart typing your content here...\n\n- Use **markdown** formatting\n- Create _italic_ text\n- Add [links](https://example.com)\n- Make ### headers : {
+    content: type === 'text' ? 'Put your markdown here...' : {
     chartType: 'line',
     xAxis: columns[0] || '',
     yAxis: columns[1] || '',
