@@ -1,5 +1,3 @@
-"use client"; 
-
 import React, { useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ScatterChart, Scatter } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -46,7 +44,7 @@ const addBlock = (type) => {
 const newBlock = {
     id: Date.now(),
     type,
-    content: type === 'text' ? 'Put your markdown here...' : {
+    content: type === 'text' ? '# New Text Block\n\nStart typing your content here...\n\n- Use **markdown** formatting\n- Create _italic_ text\n-' : {
     chartType: 'line',
     xAxis: columns[0] || '',
     yAxis: columns[1] || '',

@@ -1,0 +1,14 @@
+project-root/
+├── package.json
+├── next.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── components/
+│   └── ui/
+│       ├── button.jsx
+│       └── card.jsx
+├── pages/
+│   ├── _app.js
+│   └── index.js
+└── styles/
+    └── globals.css
