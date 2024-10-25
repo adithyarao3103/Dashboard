@@ -1,0 +1,25 @@
+{
+"name": "dashboard",
+"version": "1.0.0",
+"description": "A CSV dashboard builder app",
+"main": "src/index.js",
+"dependencies": {
+    "file-saver": "^2.0.5",
+    "html-to-image": "^1.10.0",
+    "react": "^18.0.0",
+    "react-bootstrap": "^2.4.0",
+    "react-chartjs-2": "^4.0.0",
+    "react-csv-reader": "^3.0.4",
+    "react-dom": "^18.0.0",
+    "react-markdown": "^8.0.3",
+    "chart.js": "^3.8.0"
+},
+"scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+},
+"keywords": [],
+"license": "MIT"
+}
